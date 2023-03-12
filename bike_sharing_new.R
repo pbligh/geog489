@@ -4,7 +4,7 @@ library(tibble)
 library(tidyverse)
 
 nyc <- tibble(name = "new_york", 
-              gbfs_city = "citibike",
+              gbfs_city = "NYC",
               state = list(c("NY", "NJ")),
               county = list(list(c("New York", "Kings", "Queens", "Bronx"), 
                                  c("Hudson"))))
@@ -15,14 +15,15 @@ boston <- tibble(name = "boston",
                  county = list(c("Suffolk","Middlesex", "Essex", "Norfolk")))
 
 chicago <- tibble(name = "chicago",
-                  gbfs_city = "divvy", 
+                  gbfs_city = "Divvy", 
                   state = list("Il"), 
                   county = list("Cook"))
 
 dc <- tibble(name = "dc", 
-             gbfs_city = "capital_bike", 
+             gbfs_city = "cabi", 
              state = list(c("DC", "MD", "VA")), 
-             county = list(list(c("Prince George's", 
+             county = list(list((NULL), 
+                                c("Prince George's", 
                                   "Montgomery"),
                                 c("Arlington", 
                                   "Alexandria", 
@@ -31,21 +32,25 @@ dc <- tibble(name = "dc",
                                   "Fairfax City"))))
 
 philadelphia <- tibble(name = "philadelphia",
-                       gbfs_city = "indego", 
+                       gbfs_city = "bcycle_indego", 
                        state = list("PA"), 
                        county = list("Philadelphia"))
 
 portland <- tibble(name = "portland", 
-                   gbfs_city = "biketown", 
+                   gbfs_city = "biketown_pdx", 
                    state = list("OR"), 
                    county = list("Multnomah"))
 
 df <- rbind(nyc, boston, chicago, dc, philadelphia, portland)
 
 
+?tidycensus::get_acs
+
 # Import ------------------------------------------------------------------
 
+
 iterations <- seq_len(nrow(df))
+
 import <- sapply(iterations, function(ind) {
   
   dict <- df[ind, ]
