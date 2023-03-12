@@ -4,7 +4,7 @@ library(tibble)
 library(tidyverse)
 
 nyc <- tibble(name = "new_york", 
-              gbfs_city = "NYC",
+              gbfs_city = "citibike",
               state = list(c("NY", "NJ")),
               county = list(list(c("New York", "Kings", "Queens", "Bronx"), 
                                  c("Hudson"))))
@@ -14,9 +14,33 @@ boston <- tibble(name = "boston",
                  state = list("MA"),
                  county = list(c("Suffolk","Middlesex", "Essex", "Norfolk")))
 
+chicago <- tibble(name = "chicago",
+                  gbfs_city = "divvy", 
+                  state = list("Il"), 
+                  county = list("Cook"))
 
+dc <- tibble(name = "dc", 
+             gbfs_city = "capital_bike", 
+             state = list(c("DC", "MD", "VA")), 
+             county = list(list(c("Prince George's", 
+                                  "Montgomery"),
+                                c("Arlington", 
+                                  "Alexandria", 
+                                  "Falls Church", 
+                                  "Fairfax County", 
+                                  "Fairfax City"))))
 
-df <- rbind(nyc, boston)
+philadelphia <- tibble(name = "philadelphia",
+                       gbfs_city = "indego", 
+                       state = list("PA"), 
+                       county = list("Philadelphia"))
+
+portland <- tibble(name = "portland", 
+                   gbfs_city = "biketown", 
+                   state = list("OR"), 
+                   county = list("Multnomah"))
+
+df <- rbind(nyc, boston, chicago, dc, philadelphia, portland)
 
 
 # Import ------------------------------------------------------------------
