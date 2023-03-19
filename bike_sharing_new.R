@@ -2,6 +2,8 @@ library(gbfs)
 library(tidycensus)
 library(tibble)
 library(tidyverse)
+library(sf)
+library(tmap)
 
 nyc <- tibble(name = "new_york", 
               gbfs_city = "NYC",
@@ -44,7 +46,7 @@ portland <- tibble(name = "portland",
 df <- rbind(nyc, boston, chicago, dc, philadelphia, portland)
 
 
-?tidycensus::get_acs
+
 
 # Import ------------------------------------------------------------------
 
@@ -54,15 +56,12 @@ iterations <- seq_len(nrow(df))
 import <- sapply(iterations, function(ind) {
   
   dict <- df[ind, ]
-  
   gbfs <- get_gbfs(city = dict$gbfs_city)[["station_information"]]
-  
   census_iterations <- seq_len(
     length(
       unlist(dict$state)
     )
   )
-  
   census <- lapply(census_iterations, \(iteration) {
     
     state <- unlist(dict$state)[iteration]
@@ -79,6 +78,7 @@ import <- sapply(iterations, function(ind) {
       geometry = TRUE,
       year = 2021)
   })
+  
   census <- Reduce(rbind, census)
   census <- census[names(census) != "moe"]
   census <- spread(census, variable, estimate)
@@ -99,6 +99,26 @@ intersect <- lapply(import, function(city) {
               census = city$census,
               intersections = intersections))
 })
+
+
+
+# NYC
+nyc <- import[[1]][3] %>% data.frame()
+nyc_gbfs <- import[[1]][2] %>% data.frame()
+
+nyc_gbfs <- nyc_gbfs %>% 
+  st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
+  subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
+
+nyc_geom <- nyc %>% 
+  subset(select = c(census.GEOID, census.geometry)) %>% 
+  st_as_sf(crs = 4326)
+
+nyc_int <- st_intersection(nyc_geom, nyc_gbfs)
+
+
+
+
 
 # Save plot ---------------------------------------------------------------
 
