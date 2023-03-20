@@ -4,6 +4,7 @@ library(tibble)
 library(tidyverse)
 library(sf)
 library(tmap)
+library(cancensus)
 
 nyc <- tibble(name = "new_york", 
               gbfs_city = "NYC",
@@ -87,6 +88,27 @@ import <- sapply(iterations, function(ind) {
               gbfs = as_tibble(gbfs),
               census = census))
 }, simplify = FALSE, USE.NAMES = TRUE)
+
+
+# Import Canada -----------------------------------------------------------
+options(cancensus.cache_path = getwd()) 
+options(cancensus.api_key = "CensusMapper_f3d5e9208cfd98ea52a490fd9e3d63cf")
+
+mtl <- get_census(dataset='CA16', regions=list(CMA="24462"),
+                  level='DA', quiet = TRUE, 
+                  geo_format = 'sf', labels = 'short')
+
+#changing the name of the DA ids to "id," this will help with joining later
+names(mtl)[names(mtl) == 'GeoUID'] <- "id"
+
+mtl <- subset(mtl, select = c(id, Population, geometry))
+
+bixi_stations <- get_gbfs("Bixi_MTL")
+bixi_stations <- bixi_stations[["station_information"]]
+bixi_stations <- bixi_stations %>% 
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+
 
 
 # Intersection ------------------------------------------------------------
@@ -233,6 +255,43 @@ bos_gbfs <-
 
 count_bos_int <- count(bos_gbfs, buffer_int)
 
+
+#chicago
+
+chicago_buffer <- st_buffer(chicago_gbfs, 300)
+
+chicago_int <- st_intersects(chicago_buffer)
+
+chicago_gbfs <-
+  chicago_gbfs %>% 
+  mutate(buffer_int = lengths(chicago_int))
+
+count_chicago_int <- count(dc_gbfs, buffer_int)
+
+
+# DC
+
+dc_buffer <- st_buffer(dc_gbfs, 300)
+
+dc_int <- st_intersects(dc_buffer)
+
+dc_gbfs <-
+  dc_gbfs %>% 
+  mutate(buffer_int = lengths(dc_int))
+
+count_dc_int <- count(dc_gbfs, buffer_int)
+
+#portland
+
+portland_buffer <- st_buffer(portland_gbfs, 300)
+
+portland_int <- st_intersects(portland_buffer)
+
+portland_gbfs <-
+  portland_gbfs %>% 
+  mutate(buffer_int = lengths(portland_int))
+
+count_portland_int <- count(portland_gbfs, buffer_int)
 
 # Save plot ---------------------------------------------------------------
 
