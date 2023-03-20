@@ -91,24 +91,42 @@ import <- sapply(iterations, function(ind) {
 
 
 # Import Canada -----------------------------------------------------------
+#mtl
 options(cancensus.cache_path = getwd()) 
 options(cancensus.api_key = "CensusMapper_f3d5e9208cfd98ea52a490fd9e3d63cf")
 
-mtl <- get_census(dataset='CA16', regions=list(CMA="24462"),
+mtl <- get_census(dataset='CA21', regions=list(CMA="24462"),
+                  vectors=c("v_CA21_560"),
                   level='DA', quiet = TRUE, 
                   geo_format = 'sf', labels = 'short')
 
-#changing the name of the DA ids to "id," this will help with joining later
-names(mtl)[names(mtl) == 'GeoUID'] <- "id"
+names(mtl)[names(mtl) == 'v_CA21_560'] <- "income"
 
-mtl <- subset(mtl, select = c(id, Population, geometry))
+mtl <- subset(mtl, select = c(GeoUID, Population, income, geometry))
+
 
 bixi_stations <- get_gbfs("Bixi_MTL")
 bixi_stations <- bixi_stations[["station_information"]]
-bixi_stations <- bixi_stations %>% 
+mtl_gbfs <- bixi_stations %>% 
   st_as_sf(coords = c("lon","lat"), crs = 4326)
 
+# Vancouver
 
+van <- get_census(dataset='CA21', 
+                  regions=list(CMA="59933"),
+                  vectors=c("v_CA21_560"),
+                  level='DA', quiet = TRUE, 
+                  geo_format = 'sf', 
+                  labels = 'short')
+
+names(van)[names(van) == 'v_CA21_560'] <- "income"
+
+van <- subset(van, select = c(GeoUID, Population, income, geometry))
+
+van_gbfs <- get_gbfs("Mobibikes_CA_Vancouver")
+van_gbfs <- van_gbfs[["station_information"]]
+van_gbfs <- van_gbfs[-139, ]
+van_gbfs <- van_gbfs %>% st_as_sf(coords = c("lon","lat"), crs = 4326)
 
 
 # Intersection ------------------------------------------------------------
@@ -228,7 +246,20 @@ portland <- merge(x=portland, y=portland_test, by ="census.GEOID", all.x = TRUE)
 
 portland$bike_proportion <- ((portland$`sum(gbfs.capacity)`/ portland$census.population)*1000)
 
+# Montreal
 
+mtl_int <- st_intersection(mtl, mtl_gbfs)
+
+mtl_test <- mtl_int %>% group_by(GeoUID) %>% 
+  summarise(sum(capacity)) %>% st_drop_geometry()
+
+mtl <- merge(x=mtl, y=mtl_test, by ="GeoUID", all.x = TRUE)
+
+mtl$bike_proportion <- ((mtl$`sum(capacity)`/ mtl$Population)*1000)
+
+c <-mtl %>% filter(bike_proportion != Inf)
+
+median(c$bike_proportion)
 
 # buffer ------------------------------------------------------------------
 
@@ -292,6 +323,8 @@ portland_gbfs <-
   mutate(buffer_int = lengths(portland_int))
 
 count_portland_int <- count(portland_gbfs, buffer_int)
+
+
 
 # Save plot ---------------------------------------------------------------
 
