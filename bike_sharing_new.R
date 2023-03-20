@@ -103,22 +103,79 @@ intersect <- lapply(import, function(city) {
 
 
 # NYC
-nyc <- import[[1]][3] %>% data.frame()
+nyc <- import[[1]][3] %>% data.frame() %>% 
+  st_as_sf(crs = 4326)
 nyc_gbfs <- import[[1]][2] %>% data.frame()
 
 nyc_gbfs <- nyc_gbfs %>% 
   st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
   subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
 
-nyc_geom <- nyc %>% 
-  subset(select = c(census.GEOID, census.geometry)) %>% 
+nyc_int <- st_intersection(nyc, nyc_gbfs)
+
+# Boston
+boston <- import[[2]][3] %>% data.frame() %>% 
   st_as_sf(crs = 4326)
+bos_gbfs <- import[[2]][2] %>% data.frame()
 
-nyc_int <- st_intersection(nyc_geom, nyc_gbfs)
+bos_gbfs <- bos_gbfs %>% 
+  st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
+  subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
 
+bos_int <- st_intersection(boston, bos_gbfs)
 
+bos_test <- bos_int %>% group_by(census.GEOID) %>% 
+  summarise(sum(gbfs.capacity))
 
+test2 <- bos_test %>% 
+  st_drop_geometry()
 
+boston <- merge(x=boston, y=test2, by ="census.GEOID", all.x = TRUE)
+
+boston$bike_proportion <- ((boston$`sum(gbfs.capacity)`/ boston$census.population)*1000)
+
+# Chicago
+chicago <- import[[3]][3] %>% data.frame() %>% 
+  st_as_sf(crs = 4326)
+chicago_gbfs <- import[[3]][2] %>% data.frame()
+
+chicago_gbfs <- chicago_gbfs %>% 
+  st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
+  subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
+
+chicago_int <- st_intersection(chicago, chicago_gbfs)
+
+chicago_test <- chicago_int %>% group_by(census.GEOID) %>% 
+  summarise(sum(gbfs.capacity)) %>% st_drop_geometry()
+
+test2 <- chicago_test %>% 
+  st_drop_geometry()
+
+chicago <- merge(x=chicago, y=test2, by ="census.GEOID", all.x = TRUE)
+
+chicago$bike_proportion <- ((chicago$`sum(gbfs.capacity)`/ chicago$census.population)*1000)
+
+# DC
+
+dc <- import[[4]][3] %>% data.frame() %>% 
+  st_as_sf(crs = 4326)
+dc_gbfs <- import[[4]][2] %>% data.frame()
+
+dc_gbfs <- dc_gbfs %>% 
+  st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
+  subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
+
+dc_int <- st_intersection(dc, dc_gbfs)
+
+chicago_test <- chicago_int %>% group_by(census.GEOID) %>% 
+  summarise(sum(gbfs.capacity)) %>% st_drop_geometry()
+
+test2 <- chicago_test %>% 
+  st_drop_geometry()
+
+chicago <- merge(x=chicago, y=test2, by ="census.GEOID", all.x = TRUE)
+
+chicago$bike_proportion <- ((chicago$`sum(gbfs.capacity)`/ chicago$census.population)*1000)
 
 # Save plot ---------------------------------------------------------------
 
