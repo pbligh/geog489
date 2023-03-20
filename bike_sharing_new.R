@@ -167,22 +167,79 @@ dc_gbfs <- dc_gbfs %>%
 
 dc_int <- st_intersection(dc, dc_gbfs)
 
-chicago_test <- chicago_int %>% group_by(census.GEOID) %>% 
+dc_test <- dc_int %>% group_by(census.GEOID) %>% 
   summarise(sum(gbfs.capacity)) %>% st_drop_geometry()
 
-test2 <- chicago_test %>% 
-  st_drop_geometry()
+dc <- merge(x=dc, y=dc_test, by ="census.GEOID", all.x = TRUE)
 
-chicago <- merge(x=chicago, y=test2, by ="census.GEOID", all.x = TRUE)
+dc$bike_proportion <- ((dc$`sum(gbfs.capacity)`/ dc$census.population)*1000)
 
-chicago$bike_proportion <- ((chicago$`sum(gbfs.capacity)`/ chicago$census.population)*1000)
+dc <- dc %>% subset(select = -c(`sum(gbfs.capacity).x`,`sum(gbfs.capacity).y`))
+
+# Philly
+philly <- import[[5]][3] %>% data.frame() %>% 
+  st_as_sf(crs = 4326)
+philly_gbfs <- import[[5]][2] %>% data.frame()
+
+# No capacity? will come back to later
+philly_gbfs <- philly_gbfs %>% 
+  st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
+  subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
+
+
+# portland
+
+portland <- import[[6]][3] %>% data.frame() %>% 
+  st_as_sf(crs = 4326)
+portland_gbfs <- import[[6]][2] %>% data.frame()
+
+portland_gbfs <- portland_gbfs %>% 
+  st_as_sf(coords = c("gbfs.lon", "gbfs.lat"), crs = 4326) %>% 
+  subset(select = c(gbfs.capacity, gbfs.station_id, geometry))
+
+portland_int <- st_intersection(portland, portland_gbfs)
+
+portland_test <- portland_int %>% group_by(census.GEOID) %>% 
+  summarise(sum(gbfs.capacity)) %>% st_drop_geometry()
+
+portland <- merge(x=portland, y=portland_test, by ="census.GEOID", all.x = TRUE)
+
+portland$bike_proportion <- ((portland$`sum(gbfs.capacity)`/ portland$census.population)*1000)
+
+
+
+# buffer ------------------------------------------------------------------
+
+#nyc 
+nyc_buffer <- st_buffer(nyc_gbfs, 300)
+
+nyc_int <- st_intersects(nyc_buffer)
+
+nyc_gbfs <-
+  nyc_gbfs %>% 
+  mutate(buffer_int = lengths(nyc_int))
+
+count_nyc_int <- count(nyc_gbfs, buffer_int)
+
+#boston
+
+bos_buffer <- st_buffer(bos_gbfs, 300)
+
+bos_int <- st_intersects(bos_buffer)
+
+bos_gbfs <-
+  bos_gbfs %>% 
+  mutate(buffer_int = lengths(bos_int))
+
+count_bos_int <- count(bos_gbfs, buffer_int)
+
 
 # Save plot ---------------------------------------------------------------
 
 lapply(intersect, function(city) {
   
   plot <- tm_shape(city$census) + 
-    tm_fill("income")
+    tm_fill("bike_proportion")
   
   link_save <- paste0("output/", city$dict$name, ".png")
   tmap_save(plot, filename = link_save)
