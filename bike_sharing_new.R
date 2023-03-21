@@ -97,7 +97,7 @@ options(cancensus.api_key = "CensusMapper_f3d5e9208cfd98ea52a490fd9e3d63cf")
 
 mtl <- get_census(dataset='CA21', regions=list(CMA="24462"),
                   vectors=c("v_CA21_560"),
-                  level='DA', quiet = TRUE, 
+                  level='CT', quiet = TRUE, 
                   geo_format = 'sf', labels = 'short')
 
 names(mtl)[names(mtl) == 'v_CA21_560'] <- "income"
@@ -110,12 +110,13 @@ bixi_stations <- bixi_stations[["station_information"]]
 mtl_gbfs <- bixi_stations %>% 
   st_as_sf(coords = c("lon","lat"), crs = 4326)
 
+
 # Vancouver
 
 van <- get_census(dataset='CA21', 
                   regions=list(CMA="59933"),
                   vectors=c("v_CA21_560"),
-                  level='DA', quiet = TRUE, 
+                  level='CT', quiet = TRUE, 
                   geo_format = 'sf', 
                   labels = 'short')
 
@@ -128,7 +129,50 @@ van_gbfs <- van_gbfs[["station_information"]]
 van_gbfs <- van_gbfs[-139, ]
 van_gbfs <- van_gbfs %>% st_as_sf(coords = c("lon","lat"), crs = 4326)
 
+# toronto
+tor <- get_census(dataset='CA21', 
+                  regions=list(CMA="35535"),
+                  vectors=c("v_CA21_560"),
+                  level='CT', quiet = TRUE, 
+                  geo_format = 'sf', 
+                  labels = 'short')
 
+names(tor)[names(tor) == 'v_CA21_560'] <- "income"
+
+tor <- subset(tor, select = c(GeoUID, Population, income, geometry))
+
+tor_gbfs <- get_gbfs("bike_share_toronto")
+tor_gbfs <- tor_gbfs[["station_information"]]
+tor_gbfs <- tor_gbfs %>% st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+
+
+
+tm_shape(mtl) +
+  tm_polygons() + 
+  tm_shape(mtl_gbfs) +
+  tm_dots()
+
+
+mtl_quartile <- mtl %>% 
+  filter(bike_proportion != Inf)
+
+
+tmap_mode(mode = "plot")
+
+
+
+tm_shape(mtl) + 
+  tm_fill() +
+  tm_shape(mtl) +
+  tm_borders(col = "White") +
+  tm_shape(mtl_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+
+mean(mtl_quartile$bike_proportion)
 # Intersection ------------------------------------------------------------
 
 intersect <- lapply(import, function(city) {
@@ -153,6 +197,8 @@ nyc_gbfs <- nyc_gbfs %>%
 
 nyc_int <- st_intersection(nyc, nyc_gbfs)
 
+write.csv(nyc, "/Users/philipbligh/Downloads/nyc.csv")
+         
 # Boston
 boston <- import[[2]][3] %>% data.frame() %>% 
   st_as_sf(crs = 4326)
@@ -173,6 +219,8 @@ test2 <- bos_test %>%
 boston <- merge(x=boston, y=test2, by ="census.GEOID", all.x = TRUE)
 
 boston$bike_proportion <- ((boston$`sum(gbfs.capacity)`/ boston$census.population)*1000)
+
+write.csv(boston, "/Users/philipbligh/Downloads/boston.csv")
 
 # Chicago
 chicago <- import[[3]][3] %>% data.frame() %>% 
@@ -195,6 +243,7 @@ chicago <- merge(x=chicago, y=test2, by ="census.GEOID", all.x = TRUE)
 
 chicago$bike_proportion <- ((chicago$`sum(gbfs.capacity)`/ chicago$census.population)*1000)
 
+write.csv(chicago, "/Users/philipbligh/Downloads/chicago.csv")
 # DC
 
 dc <- import[[4]][3] %>% data.frame() %>% 
@@ -216,6 +265,7 @@ dc$bike_proportion <- ((dc$`sum(gbfs.capacity)`/ dc$census.population)*1000)
 
 dc <- dc %>% subset(select = -c(`sum(gbfs.capacity).x`,`sum(gbfs.capacity).y`))
 
+write.csv(dc, "/Users/philipbligh/Downloads/dc.csv")
 # Philly
 philly <- import[[5]][3] %>% data.frame() %>% 
   st_as_sf(crs = 4326)
@@ -246,6 +296,7 @@ portland <- merge(x=portland, y=portland_test, by ="census.GEOID", all.x = TRUE)
 
 portland$bike_proportion <- ((portland$`sum(gbfs.capacity)`/ portland$census.population)*1000)
 
+write.csv(portland, "/Users/philipbligh/Downloads/portland.csv")
 # Montreal
 
 mtl_int <- st_intersection(mtl, mtl_gbfs)
@@ -257,10 +308,33 @@ mtl <- merge(x=mtl, y=mtl_test, by ="GeoUID", all.x = TRUE)
 
 mtl$bike_proportion <- ((mtl$`sum(capacity)`/ mtl$Population)*1000)
 
-c <-mtl %>% filter(bike_proportion != Inf)
+write.csv(mtl, "/Users/philipbligh/Downloads/mtl.csv")
+# vancouver
 
-median(c$bike_proportion)
+van_int <- st_intersection(van, van_gbfs)
 
+van_test <- van_int %>% group_by(GeoUID) %>% 
+  summarise(sum(capacity)) %>% st_drop_geometry()
+
+van <- merge(x=van, y=van_test, by ="GeoUID", all.x = TRUE)
+
+van$bike_proportion <- ((van$`sum(capacity)`/ van$Population)*1000)
+
+van <- van %>% subset(select = -c(`sum(capacity).x`,`sum(capacity).y`))
+
+write.csv(van, "/Users/philipbligh/Downloads/van.csv")
+# Toronto
+
+tor_int <- st_intersection(tor, tor_gbfs)
+
+tor_test <- tor_int %>% group_by(GeoUID) %>% 
+  summarise(sum(capacity)) %>% st_drop_geometry()
+
+tor <- merge(x=tor, y=tor_test, by ="GeoUID", all.x = TRUE)
+
+tor$bike_proportion <- ((tor$`sum(capacity)`/ tor$Population)*1000)
+
+write.csv(tor, "/Users/philipbligh/Downloads/toronto.csv")
 # buffer ------------------------------------------------------------------
 
 #nyc 
@@ -323,6 +397,19 @@ portland_gbfs <-
   mutate(buffer_int = lengths(portland_int))
 
 count_portland_int <- count(portland_gbfs, buffer_int)
+
+# montreal
+
+mtl_buffer <- st_buffer(mtl_gbfs, 300)
+
+mtl_int <- st_intersects(mtl_buffer)
+
+mtl_gbfs <-
+  mtl_gbfs %>% 
+  mutate(buffer_int = lengths(mtl_int))
+
+count_mtl_int <- count(mtl_gbfs, buffer_int)
+
 
 
 
