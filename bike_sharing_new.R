@@ -5,6 +5,8 @@ library(tidyverse)
 library(sf)
 library(tmap)
 library(cancensus)
+library(RColorBrewer)
+library(ggplot2)
 
 nyc <- tibble(name = "new_york", 
               gbfs_city = "NYC",
@@ -196,6 +198,18 @@ nyc_gbfs <- nyc_gbfs %>%
   subset(select = c(gbfs.capacity, gbfs.short_name, geometry))
 
 nyc_int <- st_intersection(nyc, nyc_gbfs)
+
+nyc_test <- nyc_int %>% group_by(census.GEOID) %>% 
+  summarise(sum(gbfs.capacity)) %>% 
+  st_drop_geometry()
+
+test2 <- nyc_test %>% 
+  st_drop_geometry()
+
+nyc <- merge(x=nyc, y=test2, by ="census.GEOID", all.x = TRUE)
+
+nyc$bike_proportion <- ((nyc$`sum(gbfs.capacity)`/ nyc$census.population)*1000)
+
 
 write.csv(nyc, "/Users/philipbligh/Downloads/nyc.csv")
          
@@ -410,6 +424,213 @@ mtl_gbfs <-
 
 count_mtl_int <- count(mtl_gbfs, buffer_int)
 
+# vancouver
+
+van_buffer <- st_buffer(van_gbfs, 300)
+
+van_int <- st_intersects(van_buffer)
+
+van_gbfs <-
+  van_gbfs %>% 
+  mutate(buffer_int = lengths(van_int))
+
+count_van_int <- count(van_gbfs, buffer_int)
+
+#toronto
+
+tor_buffer <- st_buffer(tor_gbfs, 300)
+
+tor_int <- st_intersects(tor_buffer)
+
+tor_gbfs <-
+  tor_gbfs %>% 
+  mutate(buffer_int = lengths(tor_int))
+
+count_tor_int <- count(tor_gbfs, buffer_int)
+
+
+
+
+# coverage areas ----------------------------------------------------------
+
+#nyc
+nyc_area <- st_union(nyc_buffer)
+
+tmap_options(check.and.fix = TRUE)
+nyc_area <- st_cast(nyc_area, "POLYGON") %>% 
+  st_make_valid(nyc_area)
+
+nyc_pop <- st_intersection(nyc, nyc_area)
+
+tm_shape(nyc_pop) +
+  tm_polygons()
+
+nyc_pop <- nyc_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+
+# Maps --------------------------------------------------------------------
+dev.off()
+#nyc
+tmap_mode(mode = "plot")
+nyc_quartile <- nyc %>% 
+  filter(bike_proportion != Inf)
+
+nyc_map <- tm_shape(nyc) + 
+  tm_fill() +
+  tm_shape(nyc) +
+  tm_borders(col = "White") +
+  tm_shape(nyc_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+nyc_map
+
+#boston
+
+boston_quartile <- boston %>% 
+  filter(bike_proportion != Inf)
+
+boston_map <- tm_shape(boston) + 
+  tm_fill() +
+  tm_shape(boston) +
+  tm_borders(col = "White") +
+  tm_shape(boston_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+
+boston_map
+
+#chicago
+
+chicago_quartile <- chicago %>% 
+  filter(bike_proportion != Inf)
+chicago <- chicago[-1332, ]
+
+chicago_map <- tm_shape(chicago) + 
+  tm_fill() +
+  tm_shape(chicago) +
+  tm_borders(col = "White") +
+  tm_shape(chicago_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+
+chicago_map
+
+#dc 
+dc_quartile <- dc %>% 
+  filter(bike_proportion != Inf)
+
+dc_map <- tm_shape(dc) + 
+  tm_fill() +
+  tm_shape(dc) +
+  tm_borders(col = "White") +
+  tm_shape(dc_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+dc_map
+
+# portland
+
+portland_quartile <- portland %>% 
+  filter(bike_proportion != Inf)
+
+portland_map <- tm_shape(portland) + 
+  tm_fill() +
+  tm_shape(portland) +
+  tm_borders(col = "White") +
+  tm_shape(portland_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+
+portland_map
+
+#mtl
+
+mtl_quartile <- mtl %>% 
+  filter(bike_proportion != Inf)
+
+mtl_map <- tm_shape(mtl) + 
+  tm_fill() +
+  tm_shape(mtl) +
+  tm_borders(col = "White") +
+  tm_shape(mtl_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+mtl_map
+
+# vancouver
+
+van_quartile <- van %>% 
+  filter(bike_proportion != Inf)
+
+van_map <- tm_shape(van) + 
+  tm_fill() +
+  tm_shape(van) +
+  tm_borders(col = "White") +
+  tm_shape(van_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+
+van_map
+
+# toronto 
+
+tor_quartile <- tor %>% 
+  filter(bike_proportion != Inf)
+
+toronto_map <- tm_shape(tor) + 
+  tm_fill() +
+  tm_shape(tor) +
+  tm_borders(col = "White") +
+  tm_shape(tor_quartile) +
+  tm_fill(col = "bike_proportion",
+          n = 10,
+          style = "quantile",
+          palette = "PuBuGn") 
+
+toronto_map
+
+
+all_maps <- tmap_arrange(nyc_map, boston_map, chicago_map, dc_map, 
+           portland_map, mtl_map, van_map, toronto_map)
+
+all_maps
+
+# stats on bike_proportion  -------------------------------------------------------------
+
+
+
+quantile(nyc_quartile$bike_proportion)
+quantile(boston_quartile$bike_proportion)
+quantile(chicago_quartile$bike_proportion)
+quantile(dc_quartile$bike_proportion)
+quantile(portland_quartile$bike_proportion)
+quantile(mtl_quartile$bike_proportion)
+quantile(van_quartile$bike_proportion)
+quantile(tor_quartile$bike_proportion)
+
+#maybe more histograms, but need to figure out outliers
+hist(tor_quartile$bike_proportion)
+
+
+# histograms --------------------------------------------------------------
+
+hist(count_bos_int$n)
 
 
 
