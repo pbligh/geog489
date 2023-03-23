@@ -147,34 +147,6 @@ tor_gbfs <- get_gbfs("bike_share_toronto")
 tor_gbfs <- tor_gbfs[["station_information"]]
 tor_gbfs <- tor_gbfs %>% st_as_sf(coords = c("lon","lat"), crs = 4326)
 
-
-
-
-tm_shape(mtl) +
-  tm_polygons() + 
-  tm_shape(mtl_gbfs) +
-  tm_dots()
-
-
-mtl_quartile <- mtl %>% 
-  filter(bike_proportion != Inf)
-
-
-tmap_mode(mode = "plot")
-
-
-
-tm_shape(mtl) + 
-  tm_fill() +
-  tm_shape(mtl) +
-  tm_borders(col = "White") +
-  tm_shape(mtl_quartile) +
-  tm_fill(col = "bike_proportion",
-          n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
-
-mean(mtl_quartile$bike_proportion)
 # Intersection ------------------------------------------------------------
 
 intersect <- lapply(import, function(city) {
@@ -454,21 +426,170 @@ count_tor_int <- count(tor_gbfs, buffer_int)
 # coverage areas ----------------------------------------------------------
 
 #nyc
+# combining the buffers into one shape
 nyc_area <- st_union(nyc_buffer)
 
+#fixing errors with the union
 tmap_options(check.and.fix = TRUE)
 nyc_area <- st_cast(nyc_area, "POLYGON") %>% 
   st_make_valid(nyc_area)
 
+#adding column for area of each ct
+nyc <- nyc %>% 
+  mutate(area = st_area(geometry))
+
 nyc_pop <- st_intersection(nyc, nyc_area)
 
-tm_shape(nyc_pop) +
-  tm_polygons()
-
+#finding area of the new cts, now that some have been cut off
 nyc_pop <- nyc_pop %>% 
   mutate(area_inter = st_area(geometry)) %>% 
   mutate(weight = area_inter/area)
 
+# multiplying weight by population
+nyc_pop <- nyc_pop %>% mutate(true_population = census.population*weight)
+sum(nyc_pop$true_population)
+# 3876730
+
+# Boston
+bos_area <- st_union(bos_buffer)
+
+tmap_options(check.and.fix = TRUE)
+bos_area <- st_cast(bos_area, "POLYGON") %>% 
+  st_make_valid(bos_area)
+
+boston <- boston %>% 
+  mutate(area = st_area(geometry))
+
+bos_pop <- st_intersection(boston, bos_area)
+
+bos_pop <- bos_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+bos_pop <- bos_pop %>% mutate(true_population = census.population*weight)
+sum(bos_pop$true_population)
+# 395763.7
+
+# Chicago
+chicago_area <- st_union(chicago_buffer)
+
+tmap_options(check.and.fix = TRUE)
+chicago_area <- st_cast(chicago_area, "POLYGON") %>% 
+  st_make_valid(chicago_area)
+
+chicago <- chicago %>% 
+  mutate(area = st_area(geometry))
+
+chicago_pop <- st_intersection(chicago, chicago_area)
+
+chicago_pop <- chicago_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+chicago_pop <- chicago_pop %>% mutate(true_population = census.population*weight)
+sum(chicago_pop$true_population)
+# 1624476
+
+# dc
+dc_area <- st_union(dc_buffer)
+
+tmap_options(check.and.fix = TRUE)
+dc_area <- st_cast(dc_area, "POLYGON") %>% 
+  st_make_valid(dc_area)
+
+dc <- dc %>% 
+  mutate(area = st_area(geometry))
+
+dc_pop <- st_intersection(dc, dc_area)
+
+dc_pop <- dc_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+dc_pop <- dc_pop %>% mutate(true_population = census.population*weight)
+sum(dc_pop$true_population)
+# 691550.2
+
+# Portland
+portland_area <- st_union(portland_buffer)
+
+tmap_options(check.and.fix = TRUE)
+portland_area <- st_cast(portland_area, "POLYGON") %>% 
+  st_make_valid(portland_area)
+
+portland <- portland %>% 
+  mutate(area = st_area(geometry))
+
+portland_pop <- st_intersection(portland, portland_area)
+
+portland_pop <- portland_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+portland_pop <- portland_pop %>% mutate(true_population = census.population*weight)
+sum(portland_pop$true_population)
+# 164312.3
+
+# mtl
+mtl_area <- st_union(mtl_buffer)
+
+tmap_options(check.and.fix = TRUE)
+mtl_area <- st_cast(mtl_area, "POLYGON") %>% 
+  st_make_valid(mtl_area)
+
+mtl <- mtl %>% 
+  mutate(area = st_area(geometry))
+
+mtl_pop <- st_intersection(mtl, mtl_area)
+
+mtl_pop <- mtl_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+mtl_pop <- mtl_pop %>% mutate(true_population = Population*weight)
+sum(mtl_pop$true_population)
+# 945785.8
+
+# vancouver
+van_area <- st_union(van_buffer)
+
+tmap_options(check.and.fix = TRUE)
+van_area <- st_cast(van_area, "POLYGON") %>% 
+  st_make_valid(van_area)
+
+van <- van %>% 
+  mutate(area = st_area(geometry))
+
+van_pop <- st_intersection(van, van_area)
+
+van_pop <- van_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+van_pop <- van_pop %>% mutate(true_population = Population*weight)
+sum(van_pop$true_population)
+# 270528
+
+# toronto
+
+tor_area <- st_union(tor_buffer)
+
+tmap_options(check.and.fix = TRUE)
+tor_area <- st_cast(tor_area, "POLYGON") %>% 
+  st_make_valid(tor_area)
+
+tor <- tor %>% 
+  mutate(area = st_area(geometry))
+
+tor_pop <- st_intersection(tor, tor_area)
+
+tor_pop <- tor_pop %>% 
+  mutate(area_inter = st_area(geometry)) %>% 
+  mutate(weight = area_inter/area)
+
+tor_pop <- tor_pop %>% mutate(true_population = Population*weight)
+sum(tor_pop$true_population)
+# 823294.8
 
 # Maps --------------------------------------------------------------------
 dev.off()
@@ -501,7 +622,8 @@ boston_map <- tm_shape(boston) +
   tm_fill(col = "bike_proportion",
           n = 10,
           style = "quantile",
-          palette = "PuBuGn") 
+          palette = "PuBuGn") +
+  tm_view(bbox = boston_quartile)
 
 boston_map
 
@@ -560,7 +682,8 @@ portland_map
 mtl_quartile <- mtl %>% 
   filter(bike_proportion != Inf)
 
-mtl_map <- tm_shape(mtl) + 
+mtl_map <- tm_shape(mtl, 
+                    bbox = mtl_quartile) + 
   tm_fill() +
   tm_shape(mtl) +
   tm_borders(col = "White") +
@@ -568,7 +691,8 @@ mtl_map <- tm_shape(mtl) +
   tm_fill(col = "bike_proportion",
           n = 10,
           style = "quantile",
-          palette = "PuBuGn") 
+          palette = "PuBuGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents")
 mtl_map
 
 # vancouver
