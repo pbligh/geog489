@@ -17,7 +17,10 @@ nyc <- tibble(name = "new_york",
 boston <- tibble(name = "boston",
                  gbfs_city = "bluebikes",
                  state = list("MA"),
-                 county = list(c("Suffolk","Middlesex", "Essex", "Norfolk")))
+                 county = list(c("Suffolk",
+                                 "Middlesex", 
+                                 "Essex", 
+                                 "Norfolk")))
 
 chicago <- tibble(name = "chicago",
                   gbfs_city = "Divvy", 
@@ -47,7 +50,6 @@ portland <- tibble(name = "portland",
                    county = list("Multnomah"))
 
 df <- rbind(nyc, boston, chicago, dc, philadelphia, portland)
-
 
 
 
@@ -91,6 +93,25 @@ import <- sapply(iterations, function(ind) {
               census = census))
 }, simplify = FALSE, USE.NAMES = TRUE)
 
+
+# for some reason, Boston didn't work as intended, so here it is below
+
+boston <- get_acs(
+  state = "MA",
+  county = c("Suffolk","Middlesex", "Essex", "Norfolk"),
+  geography = "tract",
+  variables = c(population = "B01001_001", 
+                income = "B06011_001", 
+                white = "B02001_002",
+                black = "B02001_003"),
+  geometry = TRUE,
+  year = 2021)
+
+boston <- st_transform(boston, crs = 4326)
+
+boston <- boston %>% 
+  subset(select = -c(moe)) %>% 
+  spread(variable, estimate)
 
 # Import Canada -----------------------------------------------------------
 #mtl
@@ -196,15 +217,13 @@ bos_gbfs <- bos_gbfs %>%
 
 bos_int <- st_intersection(boston, bos_gbfs)
 
-bos_test <- bos_int %>% group_by(census.GEOID) %>% 
-  summarise(sum(gbfs.capacity))
-
-test2 <- bos_test %>% 
+bos_test <- bos_int %>% group_by(GEOID) %>% 
+  summarise(sum(gbfs.capacity)) %>% 
   st_drop_geometry()
 
-boston <- merge(x=boston, y=test2, by ="census.GEOID", all.x = TRUE)
+boston <- merge(x=boston, y=bos_test, by ="GEOID", all.x = TRUE)
 
-boston$bike_proportion <- ((boston$`sum(gbfs.capacity)`/ boston$census.population)*1000)
+boston$bike_proportion <- ((boston$`sum(gbfs.capacity)`/ boston$population)*1000)
 
 write.csv(boston, "/Users/philipbligh/Downloads/boston.csv")
 
@@ -448,7 +467,10 @@ nyc_pop <- nyc_pop %>%
 # multiplying weight by population
 nyc_pop <- nyc_pop %>% mutate(true_population = census.population*weight)
 sum(nyc_pop$true_population)
-# 3876730
+sum(nyc_pop$area_inter)
+# population = 3876730
+# area = 189284837 m^2
+
 
 # Boston
 bos_area <- st_union(bos_buffer)
@@ -468,7 +490,9 @@ bos_pop <- bos_pop %>%
 
 bos_pop <- bos_pop %>% mutate(true_population = census.population*weight)
 sum(bos_pop$true_population)
-# 395763.7
+sum(bos_pop$area_inter)
+# population = 395763.7
+# area = 52377017
 
 # Chicago
 chicago_area <- st_union(chicago_buffer)
@@ -488,7 +512,9 @@ chicago_pop <- chicago_pop %>%
 
 chicago_pop <- chicago_pop %>% mutate(true_population = census.population*weight)
 sum(chicago_pop$true_population)
-# 1624476
+sum(chicago_pop$area_inter)
+# population = 1624476
+# area = 266920933 
 
 # dc
 dc_area <- st_union(dc_buffer)
@@ -508,7 +534,9 @@ dc_pop <- dc_pop %>%
 
 dc_pop <- dc_pop %>% mutate(true_population = census.population*weight)
 sum(dc_pop$true_population)
-# 691550.2
+sum(dc_pop$area_inter)
+# population = 691550.2
+# area = 142986250
 
 # Portland
 portland_area <- st_union(portland_buffer)
@@ -528,7 +556,9 @@ portland_pop <- portland_pop %>%
 
 portland_pop <- portland_pop %>% mutate(true_population = census.population*weight)
 sum(portland_pop$true_population)
-# 164312.3
+sum(portland_pop$area_inter)
+# population = 164312.3
+# area = 46889588
 
 # mtl
 mtl_area <- st_union(mtl_buffer)
@@ -548,7 +578,9 @@ mtl_pop <- mtl_pop %>%
 
 mtl_pop <- mtl_pop %>% mutate(true_population = Population*weight)
 sum(mtl_pop$true_population)
-# 945785.8
+sum(mtl_pop$area_inter)
+# population = 945785.8
+# area = 117295810
 
 # vancouver
 van_area <- st_union(van_buffer)
@@ -568,7 +600,9 @@ van_pop <- van_pop %>%
 
 van_pop <- van_pop %>% mutate(true_population = Population*weight)
 sum(van_pop$true_population)
-# 270528
+sum(van_pop$area_inter)
+# population = 270528
+# area = 29056465
 
 # toronto
 
@@ -589,7 +623,10 @@ tor_pop <- tor_pop %>%
 
 tor_pop <- tor_pop %>% mutate(true_population = Population*weight)
 sum(tor_pop$true_population)
-# 823294.8
+sum(tor_pop$area_inter)
+# population = 823294.8
+# area = 92141487
+
 
 # Maps --------------------------------------------------------------------
 dev.off()
@@ -603,10 +640,14 @@ nyc_map <- tm_shape(nyc) +
   tm_shape(nyc) +
   tm_borders(col = "White") +
   tm_shape(nyc_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 nyc_map
 
 #boston
@@ -614,16 +655,20 @@ nyc_map
 boston_quartile <- boston %>% 
   filter(bike_proportion != Inf)
 
-boston_map <- tm_shape(boston) + 
+boston_map <- tm_shape(boston,
+                       bbox = boston_quartile) + 
   tm_fill() +
   tm_shape(boston) +
   tm_borders(col = "White") +
   tm_shape(boston_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") +
-  tm_view(bbox = boston_quartile)
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 
 boston_map
 
@@ -638,10 +683,14 @@ chicago_map <- tm_shape(chicago) +
   tm_shape(chicago) +
   tm_borders(col = "White") +
   tm_shape(chicago_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 
 chicago_map
 
@@ -649,15 +698,20 @@ chicago_map
 dc_quartile <- dc %>% 
   filter(bike_proportion != Inf)
 
-dc_map <- tm_shape(dc) + 
+dc_map <- tm_shape(dc, 
+                   bbox = dc_quartile) + 
   tm_fill() +
   tm_shape(dc) +
   tm_borders(col = "White") +
   tm_shape(dc_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 dc_map
 
 # portland
@@ -670,10 +724,14 @@ portland_map <- tm_shape(portland) +
   tm_shape(portland) +
   tm_borders(col = "White") +
   tm_shape(portland_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 
 portland_map
 
@@ -688,11 +746,14 @@ mtl_map <- tm_shape(mtl,
   tm_shape(mtl) +
   tm_borders(col = "White") +
   tm_shape(mtl_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents")
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 mtl_map
 
 # vancouver
@@ -700,15 +761,19 @@ mtl_map
 van_quartile <- van %>% 
   filter(bike_proportion != Inf)
 
-van_map <- tm_shape(van) + 
+van_map <- tm_shape(van, 
+                    bbox = van_quartile) + 
   tm_fill() +
   tm_shape(van) +
   tm_borders(col = "White") +
   tm_shape(van_quartile) +
-  tm_fill(col = "bike_proportion",
-          n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
+  tm_polygons(col = "bike_proportion",
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 
 van_map
 
@@ -717,15 +782,20 @@ van_map
 tor_quartile <- tor %>% 
   filter(bike_proportion != Inf)
 
-toronto_map <- tm_shape(tor) + 
+toronto_map <- tm_shape(tor, 
+                        bbox = tor_quartile) + 
   tm_fill() +
   tm_shape(tor) +
   tm_borders(col = "White") +
   tm_shape(tor_quartile) +
-  tm_fill(col = "bike_proportion",
+  tm_polygons(col = "bike_proportion",
           n = 10,
-          style = "quantile",
-          palette = "PuBuGn") 
+          style = "fixed", 
+          breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
+          palette = "YlGn") +
+  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_compass() +
+  tm_scale_bar()
 
 toronto_map
 
