@@ -628,24 +628,55 @@ sum(tor_pop$area_inter)
 # area = 92141487
 
 
+# bounding boxes for maps -------------------------------------------------
+#nyc
+bbox_new <- st_bbox(tor_quartile) # current bounding box
+
+xrange <- bbox_new$xmax - bbox_new$xmin # range of x values
+yrange <- bbox_new$ymax - bbox_new$ymin # range of y values
+
+bbox_new[1] <- bbox_new[1] - (0.1 * xrange) # xmin - left
+bbox_new[3] <- bbox_new[3] + (0.25 * xrange) # xmax - right
+bbox_new[2] <- bbox_new[2] - (0.1 * yrange) # ymin - bottom
+bbox_new[4] <- bbox_new[4] + (0.2 * yrange) # ymax - top
+
+
+bbox_nyc <- bbox_new
+bbox_boston <- bbox_new
+bbox_chicago <- bbox_new
+bbox_dc <- bbox_new
+bbox_portland <- bbox_new
+bbox_mtl <- bbox_new
+bbox_van <- bbox_new
+bbox_tor <- bbox_new
+
+
+
+
+
+
+
 # Maps --------------------------------------------------------------------
 dev.off()
+
 #nyc
 tmap_mode(mode = "plot")
 nyc_quartile <- nyc %>% 
   filter(bike_proportion != Inf)
 
-nyc_map <- tm_shape(nyc) + 
+nyc_map <- tm_shape(nyc, 
+                    bbox = nyc_quartile) + 
   tm_fill() +
   tm_shape(nyc) +
   tm_borders(col = "White") +
   tm_shape(nyc_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(title = "Bikes per 1000 Residents", 
+            legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
 nyc_map
@@ -662,11 +693,13 @@ boston_map <- tm_shape(boston,
   tm_borders(col = "White") +
   tm_shape(boston_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(title = "Bikes per 1000 Residents",
+            legend.position = c("left", "bottom"),
+            legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
 
@@ -678,17 +711,20 @@ chicago_quartile <- chicago %>%
   filter(bike_proportion != Inf)
 chicago <- chicago[-1332, ]
 
-chicago_map <- tm_shape(chicago) + 
+chicago_map <- tm_shape(chicago, 
+                        bbox = bbox_chicago) + 
   tm_fill() +
   tm_shape(chicago) +
   tm_borders(col = "White") +
   tm_shape(chicago_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(legend.position = c("left", "bottom"),
+    title = "Bikes per 1000 Residents", 
+    legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
 
@@ -699,19 +735,22 @@ dc_quartile <- dc %>%
   filter(bike_proportion != Inf)
 
 dc_map <- tm_shape(dc, 
-                   bbox = dc_quartile) + 
+                   bbox = bbox_dc) + 
   tm_fill() +
   tm_shape(dc) +
   tm_borders(col = "White") +
   tm_shape(dc_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(legend.position = c("left", "bottom"), 
+            title = "Bikes per 1000 Residents", 
+            legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
+
 dc_map
 
 # portland
@@ -719,17 +758,20 @@ dc_map
 portland_quartile <- portland %>% 
   filter(bike_proportion != Inf)
 
-portland_map <- tm_shape(portland) + 
+portland_map <- tm_shape(portland, 
+                         bbox = bbox_portland) + 
   tm_fill() +
   tm_shape(portland) +
   tm_borders(col = "White") +
   tm_shape(portland_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(legend.position = c("left", "bottom"),
+            title = "Bikes per 1000 Residents", 
+            legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
 
@@ -741,17 +783,18 @@ mtl_quartile <- mtl %>%
   filter(bike_proportion != Inf)
 
 mtl_map <- tm_shape(mtl, 
-                    bbox = mtl_quartile) + 
+                    bbox = bbox_mtl) + 
   tm_fill() +
   tm_shape(mtl) +
   tm_borders(col = "White") +
   tm_shape(mtl_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(title = "Bikes per 1000 Residents", 
+            legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
 mtl_map
@@ -762,16 +805,18 @@ van_quartile <- van %>%
   filter(bike_proportion != Inf)
 
 van_map <- tm_shape(van, 
-                    bbox = van_quartile) + 
+                    bbox = bbox_van) + 
   tm_fill() +
   tm_shape(van) +
   tm_borders(col = "White") +
   tm_shape(van_quartile) +
   tm_polygons(col = "bike_proportion",
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(title = "Bikes per 1000 Residents", 
+            legend.title.size = .9) +
   tm_compass() +
   tm_scale_bar()
 
@@ -783,21 +828,26 @@ tor_quartile <- tor %>%
   filter(bike_proportion != Inf)
 
 toronto_map <- tm_shape(tor, 
-                        bbox = tor_quartile) + 
+                        bbox = bbox_tor) + 
   tm_fill() +
   tm_shape(tor) +
   tm_borders(col = "White") +
   tm_shape(tor_quartile) +
   tm_polygons(col = "bike_proportion",
-          n = 10,
+              title = "Bikes per Residents",
           style = "fixed", 
           breaks = c(0, 5, 10, 15, 20, 25, 30, Inf),
           palette = "YlGn") +
-  tm_layout(title = "Proportion of Bikes per 1000 Residents") +
+  tm_layout(title = "Bikes per 1000 Residents",
+            legend.title.size = .9, 
+            legend.position = c("left", "top")) +
   tm_compass() +
   tm_scale_bar()
 
 toronto_map
+
+
+# All maps ----------------------------------------------------------------
 
 
 all_maps <- tmap_arrange(nyc_map, boston_map, chicago_map, dc_map, 
