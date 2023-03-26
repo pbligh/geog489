@@ -629,7 +629,7 @@ sum(tor_pop$area_inter)
 
 
 # bounding boxes for maps -------------------------------------------------
-#nyc
+# use to plug in values, and save below
 bbox_new <- st_bbox(tor_quartile) # current bounding box
 
 xrange <- bbox_new$xmax - bbox_new$xmin # range of x values
@@ -649,11 +649,6 @@ bbox_portland <- bbox_new
 bbox_mtl <- bbox_new
 bbox_van <- bbox_new
 bbox_tor <- bbox_new
-
-
-
-
-
 
 
 # Maps --------------------------------------------------------------------
@@ -877,7 +872,31 @@ hist(tor_quartile$bike_proportion)
 hist(count_bos_int$n)
 
 
+# correlation -------------------------------------------------------------
 
+cor.test(nyc$bike_proportion, nyc$census.income, method = "spearman", exact = F)
+cor.test(boston$bike_proportion, boston$income, method = "spearman", exact = F)
+cor.test(chicago$bike_proportion, chicago$census.income, method = "spearman", exact = F)
+cor.test(dc$bike_proportion, dc$census.income, method = "spearman", exact = F)
+cor.test(portland$bike_proportion, portland$census.income, method = "spearman", exact = F)
+cor.test(mtl$bike_proportion, mtl$income, method = "spearman", exact = F)
+cor.test(van$bike_proportion, van$income, method = "spearman", exact = F)
+cor.test(tor$bike_proportion, tor$income, method = "spearman", exact = F)
+
+# for race:
+# first need to calculate proportion of white residents
+
+nyc$proportion_white <- (nyc$census.white/nyc$census.population)
+boston$proportion_white <- (boston$white/boston$population)
+chicago$proportion_white <- (chicago$census.white/chicago$census.population)
+dc$proportion_white <- (dc$census.white/dc$census.population)
+portland$proportion_white <- (portland$census.white/portland$census.population)
+
+cor.test(nyc$bike_proportion, nyc$proportion_white, method = "spearman", exact = F)
+cor.test(boston$bike_proportion, boston$proportion_white, method = "spearman", exact = F)
+cor.test(chicago$bike_proportion, chicago$proportion_white, method = "spearman", exact = F)
+cor.test(dc$bike_proportion, dc$proportion_white, method = "spearman", exact = F)
+cor.test(portland$bike_proportion, portland$proportion_white, method = "spearman", exact = F)
 # Save plot ---------------------------------------------------------------
 
 lapply(intersect, function(city) {
