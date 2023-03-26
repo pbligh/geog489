@@ -376,7 +376,7 @@ chicago_gbfs <-
   chicago_gbfs %>% 
   mutate(buffer_int = lengths(chicago_int))
 
-count_chicago_int <- count(dc_gbfs, buffer_int)
+count_chicago_int <- count(chicago_gbfs, buffer_int)
 
 
 # DC
@@ -867,9 +867,72 @@ quantile(tor_quartile$bike_proportion)
 hist(tor_quartile$bike_proportion)
 
 
-# histograms --------------------------------------------------------------
+# Graphs --------------------------------------------------------------
 
-hist(count_bos_int$n)
+
+hist(nyc$bike_proportion[nyc$bike_proportion<50])
+hist(boston$bike_proportion[boston$bike_proportion<50])
+hist(chicago$bike_proportion[chicago$bike_proportion<50])
+hist(dc$bike_proportion[dc$bike_proportion<50])
+hist(portland$bike_proportion[portland$bike_proportion<50])
+hist(mtl$bike_proportion[mtl$bike_proportion<50])
+hist(van$bike_proportion[van$bike_proportion<50])
+hist(tor$bike_proportion[tor$bike_proportion<50])
+
+
+
+
+barplot_nyc <- barplot(height=count_nyc_int$n, 
+        names=count_nyc_int$buffer_int, 
+        xlab = "Station Intersections", 
+        ylab = "Count",
+        main = "CitiBike, NYC",
+        las = 1,
+        cex.names = 1)
+
+barplot_boston <- barplot(height=count_bos_int$n, 
+        names = count_bos_int$buffer_int, 
+        xlab = "Station Intersections", 
+        ylab = "Count", 
+        main = "Bluebikes, Boston")
+
+barplot_chicago <- barplot(height = count_chicago_int$n, 
+        names = count_chicago_int$buffer_int,
+        xlab = "Station Intersections", 
+        ylab = "Count", 
+        main = "Divvy, Chicago")
+
+barplot_dc <- barplot(height = count_dc_int$n, 
+        names = count_dc_int$buffer_int, 
+        xlab = "Station Intersections", 
+        ylab = "Count", 
+        main = "Capital Bikeshare, DC", 
+        cex.names = 1)
+
+barplot_portland <- barplot(height = count_portland_int$n, 
+        names = count_portland_int$buffer_int, 
+        xlab = "Station Intersections", 
+        ylab = "Count", 
+        main = "Biketown, Portland")
+
+barplot_mtl <- barplot(height =count_mtl_int$n, 
+                       names = count_mtl_int$buffer_int, 
+                       xlab = "Station Intersections", 
+                       ylab = "Count", 
+                       main = "BIXI, Montreal")
+
+barplot_van <- barplot(height = count_van_int$n, 
+                       names = count_van_int$buffer_int, 
+                       xlab = "Station Intersections", 
+                       ylab = "Count", 
+                       main = "Mobi, Vancouver")
+
+barplot_tor <- barplot(height = count_tor_int$n, 
+                       names = count_tor_int$buffer_int, 
+                       xlab = "Station Intersections", 
+                       ylab = "Count", 
+                       main = "Bike Share Toronto", 
+                       cex.names = 1)
 
 
 # correlation -------------------------------------------------------------
@@ -885,6 +948,7 @@ cor.test(tor$bike_proportion, tor$income, method = "spearman", exact = F)
 
 # for race:
 # first need to calculate proportion of white residents
+cor.test(nyc$census.income, nyc$proportion_white, method = "spearman", exact = F)
 
 nyc$proportion_white <- (nyc$census.white/nyc$census.population)
 boston$proportion_white <- (boston$white/boston$population)
