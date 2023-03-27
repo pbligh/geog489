@@ -867,27 +867,56 @@ quantile(tor_quartile$bike_proportion)
 hist(tor_quartile$bike_proportion)
 
 
-# Graphs --------------------------------------------------------------
+# Histograms --------------------------------------------------------------
+
+hist(nyc$bike_proportion[nyc$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Citibike, NYC")
+
+hist(boston$bike_proportion[boston$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Bluebike, Boston")
+
+hist(chicago$bike_proportion[chicago$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Divvy, Chicago")
 
 
-hist(nyc$bike_proportion[nyc$bike_proportion<50])
-hist(boston$bike_proportion[boston$bike_proportion<50])
-hist(chicago$bike_proportion[chicago$bike_proportion<50])
-hist(dc$bike_proportion[dc$bike_proportion<50])
-hist(portland$bike_proportion[portland$bike_proportion<50])
-hist(mtl$bike_proportion[mtl$bike_proportion<50])
-hist(van$bike_proportion[van$bike_proportion<50])
-hist(tor$bike_proportion[tor$bike_proportion<50])
+hist(dc$bike_proportion[dc$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Capital Bikeshare, DC")
 
+hist(portland$bike_proportion[portland$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Biketown, Portland")
 
+hist(mtl$bike_proportion[mtl$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "BIXI, Montreal")
 
+hist(van$bike_proportion[van$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Mobi, Vancouver")
+
+hist(tor$bike_proportion[tor$bike_proportion<50], 
+     xlab = "Bikes per 1000 Residents", 
+     ylab = "Number of Census Tracts",
+     main = "Bike Share Toronto")
+
+# Barplots ----------------------------------------------------------------
 
 barplot_nyc <- barplot(height=count_nyc_int$n, 
         names=count_nyc_int$buffer_int, 
         xlab = "Station Intersections", 
         ylab = "Count",
         main = "CitiBike, NYC",
-        las = 1,
         cex.names = 1)
 
 barplot_boston <- barplot(height=count_bos_int$n, 
@@ -933,7 +962,6 @@ barplot_tor <- barplot(height = count_tor_int$n,
                        ylab = "Count", 
                        main = "Bike Share Toronto", 
                        cex.names = 1)
-
 
 # correlation -------------------------------------------------------------
 
